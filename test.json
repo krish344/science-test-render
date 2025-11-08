@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1,
+    "question": "Which planet is known as the Red Planet?",
+    "choices": ["Earth", "Mars", "Jupiter", "Venus"],
+    "answerIndex": 1
+  },
+  {
+    "id": 2,
+    "question": "What is the chemical symbol for water?",
+    "choices": ["H2", "O2", "H2O", "HO2"],
+    "answerIndex": 2
+  },
+  {
+    "id": 3,
+    "question": "What organelle is known as the powerhouse of the cell?",
+    "choices": ["Nucleus", "Ribosome", "Mitochondrion", "Golgi apparatus"],
+    "answerIndex": 2
+  },
+  {
+    "id": 4,
+    "question": "Which force keeps planets in orbit around the sun?",
+    "choices": ["Magnetism", "Friction", "Gravity", "Electric force"],
+    "answerIndex": 2
+  },
+  {
+    "id": 5,
+    "question": "What gas do plants primarily absorb for photosynthesis?",
+    "choices": ["Oxygen", "Nitrogen", "Carbon Dioxide", "Hydrogen"],
+    "answerIndex": 2
+  },
+  {
+    "id": 6,
+    "question": "Which of these is NOT a state of matter?",
+    "choices": ["Solid", "Liquid", "Plasma", "Energy"],
+    "answerIndex": 3
+  }
+]

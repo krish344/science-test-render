@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Science Test</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="container">
+    <h1 id="title">Science Test</h1>
+
+    <form id="studentForm">
+      <div class="field">
+        <label for="name">Full name</label>
+        <input id="name" name="name" required />
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input id="email" name="email" type="email" required />
+      </div>
+
+      <div id="questions"></div>
+
+      <div class="actions">
+        <button type="submit">Submit Answers</button>
+      </div>
+    </form>
+
+    <div id="result" class="hidden">
+      <h2>Result</h2>
+      <p id="score"></p>
+      <pre id="details"></pre>
+      <a href="/">Take again</a>
+    </div>
+
+    <hr/>
+    <p>Admin? <a href="/admin" target="_blank">View results</a> (requires ADMIN_TOKEN)</p>
+  </div>
+
+  <script src="/script.js"></script>
+</body>
+</html>

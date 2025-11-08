@@ -1,0 +1,11 @@
+# Example Render service config (optional). Adjust as needed in Render UI.
+services:
+  - type: web
+    name: science-test
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: ADMIN_TOKEN
+        scope: PRIVATE

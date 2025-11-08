@@ -1,0 +1,57 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Results — Admin</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>Stored Results (Admin)</h1>
+    <p>Enter ADMIN_TOKEN to view results</p>
+    <div class="field">
+      <label for="token">Admin token</label>
+      <input id="token" />
+      <button id="btnLoad">Load results</button>
+    </div>
+    <div id="tableWrap"></div>
+    <pre id="raw" style="white-space:pre-wrap;"></pre>
+  </div>
+
+  <script>
+    document.getElementById('btnLoad').addEventListener('click', async () => {
+      const token = document.getElementById('token').value.trim();
+      if (!token) return alert('Enter token');
+      const res = await fetch('/api/results', {
+        headers: { Authorization: 'Bearer ' + token }
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        return alert(err.error || 'Failed to load results');
+      }
+      const data = await res.json();
+      const wrap = document.getElementById('tableWrap');
+      if (!data.results || data.results.length === 0) {
+        wrap.innerHTML = '<p>No results yet.</p>';
+        return;
+      }
+      let html = '<table><thead><tr><th>Name</th><th>Email</th><th>Score</th><th>Total</th><th>Answers</th><th>Submitted</th></tr></thead><tbody>';
+      data.results.forEach(r => {
+        html += `<tr>
+          <td>${escapeHtml(r.name)}</td>
+          <td>${escapeHtml(r.email)}</td>
+          <td>${r.score}</td>
+          <td>${r.total}</td>
+          <td><pre>${escapeHtml(JSON.stringify(r.answers || r.answers, null, 2))}</pre></td>
+          <td>${r.created_at || r.created_at}</td>
+        </tr>`;
+      });
+      html += '</tbody></table>';
+      wrap.innerHTML = html;
+      document.getElementById('raw').innerText = JSON.stringify(data.results, null, 2);
+    });
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/[&<>\
