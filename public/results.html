@@ -5,53 +5,126 @@
   <title>Results — Admin</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <link rel="stylesheet" href="/styles.css" />
+  <style>
+    .error { color: #842029; background:#f8d7da; border:1px solid #f5c2c7; padding:10px; border-radius:4px; margin-bottom:12px;}
+    .info { color:#084298; background:#cfe2ff; border:1px solid #b6d4fe; padding:10px; border-radius:4px; margin-bottom:12px;}
+    pre.raw { background:#f6f8fa; padding:10px; border-radius:4px; overflow:auto; max-height:300px;}
+  </style>
 </head>
 <body>
   <div class="container">
     <h1>Stored Results (Admin)</h1>
     <p>Enter ADMIN_TOKEN to view results</p>
+
     <div class="field">
       <label for="token">Admin token</label>
-      <input id="token" />
+      <input id="token" placeholder="paste ADMIN_TOKEN here" />
       <button id="btnLoad">Load results</button>
+      <button id="btnClear" style="margin-left:8px">Clear</button>
     </div>
+
+    <div id="statusArea" aria-live="polite"></div>
+
     <div id="tableWrap"></div>
-    <pre id="raw" style="white-space:pre-wrap;"></pre>
+
+    <h3>Raw response</h3>
+    <pre id="raw" class="raw"></pre>
   </div>
 
   <script>
-    document.getElementById('btnLoad').addEventListener('click', async () => {
-      const token = document.getElementById('token').value.trim();
-      if (!token) return alert('Enter token');
-      const res = await fetch('/api/results', {
-        headers: { Authorization: 'Bearer ' + token }
-      });
-      if (!res.ok) {
-        const err = await res.json();
-        return alert(err.error || 'Failed to load results');
-      }
-      const data = await res.json();
-      const wrap = document.getElementById('tableWrap');
-      if (!data.results || data.results.length === 0) {
-        wrap.innerHTML = '<p>No results yet.</p>';
-        return;
-      }
-      let html = '<table><thead><tr><th>Name</th><th>Email</th><th>Score</th><th>Total</th><th>Answers</th><th>Submitted</th></tr></thead><tbody>';
-      data.results.forEach(r => {
-        html += `<tr>
-          <td>${escapeHtml(r.name)}</td>
-          <td>${escapeHtml(r.email)}</td>
-          <td>${r.score}</td>
-          <td>${r.total}</td>
-          <td><pre>${escapeHtml(JSON.stringify(r.answers || r.answers, null, 2))}</pre></td>
-          <td>${r.created_at || r.created_at}</td>
-        </tr>`;
-      });
-      html += '</tbody></table>';
-      wrap.innerHTML = html;
-      document.getElementById('raw').innerText = JSON.stringify(data.results, null, 2);
-    });
+    function setStatusMessage(html, level = 'info') {
+      const area = document.getElementById('statusArea');
+      area.innerHTML = '<div class="' + (level === 'error' ? 'error' : 'info') + '">' + html + '</div>';
+    }
+
+    function clearStatus() {
+      document.getElementById('statusArea').innerHTML = '';
+    }
 
     function escapeHtml(str) {
-      if (!str) return '';
-      return String(str).replace(/[&<>\
+      if (str === null || str === undefined) return '';
+      return String(str).replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+    }
+
+    async function loadResults() {
+      clearStatus();
+      document.getElementById('tableWrap').innerHTML = '';
+      document.getElementById('raw').innerText = '';
+
+      const token = document.getElementById('token').value.trim();
+      if (!token) {
+        setStatusMessage('Please enter the ADMIN_TOKEN before loading results.', 'error');
+        return;
+      }
+
+      setStatusMessage('Loading results…');
+
+      try {
+        const res = await fetch('/api/results', {
+          headers: { Authorization: 'Bearer ' + token }
+        });
+
+        const text = await res.text();
+        let payload;
+        try { payload = JSON.parse(text); } catch (e) { payload = { raw: text }; }
+
+        document.getElementById('raw').innerText = typeof payload === 'object' ? JSON.stringify(payload, null, 2) : payload.raw || text;
+
+        if (res.status === 401) {
+          setStatusMessage('Unauthorized (401): token is invalid or missing. Check ADMIN_TOKEN environment variable and ensure no extra spaces were copied.', 'error');
+          return;
+        }
+
+        if (!res.ok) {
+          setStatusMessage('Server returned ' + res.status + ' ' + res.statusText + '. See raw response below for details.', 'error');
+          return;
+        }
+
+        // res.ok and JSON parsed (expected format: { results: [...] })
+        const results = payload && payload.results ? payload.results : [];
+        if (!results || results.length === 0) {
+          setStatusMessage('No results found. Either no one has submitted the test yet, or results were lost (if using SQLite on Render, note that disk is ephemeral).', 'info');
+          return;
+        }
+
+        // build table
+        let html = '<table><thead><tr><th>Name</th><th>Email</th><th>Score</th><th>Total</th><th>Answers</th><th>Submitted</th></tr></thead><tbody>';
+        results.forEach(r => {
+          const answers = escapeHtml(JSON.stringify(r.answers || r.answers, null, 2));
+          const created = escapeHtml(r.created_at || r.created_at || r.createdAt || '');
+          html += `<tr>
+            <td>${escapeHtml(r.name)}</td>
+            <td>${escapeHtml(r.email)}</td>
+            <td>${escapeHtml(r.score)}</td>
+            <td>${escapeHtml(r.total)}</td>
+            <td><pre style="margin:0">${answers}</pre></td>
+            <td>${created}</td>
+          </tr>`;
+        });
+        html += '</tbody></table>';
+        document.getElementById('tableWrap').innerHTML = html;
+        clearStatus();
+      } catch (err) {
+        console.error('Network or parsing error while fetching results:', err);
+        setStatusMessage('Network or server error: ' + escapeHtml(String(err.message || err)), 'error');
+      }
+    }
+
+    document.getElementById('btnLoad').addEventListener('click', loadResults);
+    document.getElementById('btnClear').addEventListener('click', () => {
+      document.getElementById('token').value = '';
+      document.getElementById('tableWrap').innerHTML = '';
+      document.getElementById('raw').innerText = '';
+      clearStatus();
+    });
+
+    // Allow Enter key in token input to trigger load
+    document.getElementById('token').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        loadResults();
+      }
+    });
+  </script>
+</body>
+</html>
